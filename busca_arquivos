@@ -1,0 +1,140 @@
+import pandas as pd
+from tkinter import *
+from tkinter import messagebox, ttk
+from unidecode import unidecode
+import glob
+from pathlib import Path
+
+todos = list(glob.glob(r"H:\\Hz Painéis\\Orçamentos\\Orç2023\\Prop-1*\\*\\2*-23.xlsx"))
+
+janela = Tk()
+janela.title("Procurar componente")
+janela.geometry("950x600")
+janela.configure(background="#dde")
+
+tree = ttk.Treeview(janela, column=(1, 2, 3), show="headings")
+tree.heading(1, text="Planilha")
+tree.heading(2, text="Descrição")
+tree.heading(3, text="Fabricante")
+
+est = ttk.Style()
+est.configure("Treeview", background="white", foreground="black", rowheight=50)
+
+
+def procurar():
+    for record in tree.get_children():
+        tree.delete(record)
+    t = unidecode(tipo.get().upper()).split(",")  # MELHORAR AQUI
+    print(t)
+    f = unidecode(evo.get().upper())
+    c = 0
+    if t == "" or t == None:
+        messagebox.showinfo(
+            title="Sem informação", message="Preenche a descrição, por favor"
+        )
+        return
+
+    for caminho in todos:
+        arq = pd.ExcelFile(caminho)
+        for planilha in arq.sheet_names:
+            if "LM-2" in planilha:
+                aba = planilha
+
+        if f == None:
+            try:
+                df = pd.read_excel(caminho, sheet_name=aba, skiprows=9, usecols="D, I")
+                # tabela = df.loc[df['Descrição'].str.upper().str.contains(t), ['Descrição', 'Fabricante']]
+                tabela = df.loc[
+                    df["Descrição"].apply(
+                        lambda tex: all(word in str(tex).upper() for word in t)
+                    ),
+                    ["Descrição", "Fabricante"],
+                ]
+
+            except:
+                pass
+
+            else:
+
+                if tabela.empty:
+                    pass
+
+                else:
+                    tree.insert(
+                        "",
+                        index=0,
+                        values=(
+                            aba,
+                            tabela["Descrição"].values,
+                            tabela["Fabricante"].values,
+                        ),
+                    )
+                    c += 1
+        else:
+            try:
+                df = pd.read_excel(caminho, sheet_name=aba, skiprows=9, usecols="D, I")
+                # tabela = df.loc[df['Descrição'].str.upper().str.contains(t) & df['Fabricante'].str.upper().str.contains(f), ['Descrição', 'Fabricante']]
+                tabela = df.loc[
+                    df["Descrição"].apply(
+                        lambda tex: all(word in str(tex).upper() for word in t)
+                    )
+                    & df["Fabricante"].str.upper().str.contains(f),
+                    ["Descrição", "Fabricante"],
+                ]
+
+            except:
+                pass
+
+            else:
+                if tabela.empty:
+                    pass
+                else:
+                    tree.insert(
+                        "",
+                        index=0,
+                        values=(
+                            aba,
+                            tabela["Descrição"].values,  # 'Descrição'
+                            tabela["Fabricante"].values,
+                        ),
+                    )
+                    c += 1
+
+    if c == 0:
+        messagebox.showinfo(
+            title="Sem informação", message="Não foi encontrado nenhum componente"
+        )
+    tree.pack()
+
+
+# print(todos)
+
+Label(
+    janela,
+    text="Digite a descrição do componente",
+    font=("Arial", 15),
+    background="#dde",
+    foreground="black",
+    anchor=W,
+).place(x=10, y=400, width=450, height=40)
+
+Label(
+    janela,
+    text="Digite o fabricante",
+    font=("Arial", 15),
+    background="#dde",
+    foreground="black",
+    anchor=E,
+).place(x=500, y=400, width=300, height=40)
+
+tipo = Entry(janela, font=("Arial", 15))
+tipo.place(x=50, y=450, width=200, height=40)
+
+evo = Entry(janela, font=("Arial", 15))
+evo.place(x=600, y=450, width=150, height=40)
+
+Button(janela, text="Procurar", font=("Arial", 15), command=procurar).place(
+    x=350, y=520, width=100, height=40
+)
+
+janela.mainloop()
